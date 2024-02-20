@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des catégories</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Gestion des catégories</h1>
+        
+        <!-- Formulaire pour ajouter une catégorie -->
+        <div class="card mb-4">
+            <div class="card-header">
+                Ajouter une catégorie
+            </div>
+            <div class="card-body">
+                <form id="addCategoryForm">
+                    <div class="form-group">
+                        <label for="libelle">Libellé:</label>
+                        <input type="text" class="form-control" id="libelle" name="libelle">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Liste des catégories existantes -->
+        <div class="mt-4">
+            <h2>Liste des catégories</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">Index</th>
+                        <th scope="col">Libellé</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="categoriesTableBody">
+                 
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Script JavaScript pour récupérer et afficher les catégories -->
+    <script>
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Fonction pour afficher les catégories dans la table
+            const displayCategories = async () => {
+                const response = await fetch('/categories');
+                const categories = await response.json();
+                
+                const categoriesTableBody = document.querySelector('#categoriesTableBody');
+                categoriesTableBody.innerHTML = '';
+//////////////*********modification dun id par index cote utilisateur
+                categories.forEach((category, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <th scope="row">${index + 1}</th>
+                        <td>${category.libelle}</td>
+                        <td>
+                            <button class="btn btn-danger delete-category-btn" data-category-id="${category._id}">Supprimer</button>
+                            <button class="btn btn-primary edit-category-btn" data-category-id="${category._id}">Modifier</button>
+                        </td>
+                    `;
+                    categoriesTableBody.appendChild(row);
+                });
+
+                // Ajoutez un écouteur d'événement à chaque bouton "Supprimer"
+                const deleteButtons = document.querySelectorAll('.delete-category-btn');
+                deleteButtons.forEach(button => {
+                    button.addEventListener('click', async () => {
+                        const categoryId = button.getAttribute('data-category-id');
+                        try {
+                            const response = await fetch(`/categories/${categoryId}`, {
+                                method: 'DELETE'
+                            });
+                            if (response.ok) {
+                                // Mettez à jour l'affichage après la suppression
+                                displayCategories();
+                            } else {
+                                console.error('Erreur lors de la suppression de la catégorie');
+                            }
+                        } catch (error) {
+                            console.error('Erreur lors de la suppression de la catégorie:', error);
+                        }
+                    });
+                });
+
+                // Ajoutez un écouteur d'événement à chaque bouton "Modifier"
+                const editButtons = document.querySelectorAll('.edit-category-btn');
+                editButtons.forEach(button => {
+                    button.addEventListener('click', async () => {
+                        const categoryId = button.getAttribute('data-category-id');
+                        const newLibelle = prompt('Entrez le nouveau libellé :');
+                        if (newLibelle) {
+                            try {
+                                const response = await fetch(`/categories/${categoryId}`, {
+                                    method: 'PUT',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ libelle: newLibelle })
+                                });
+                                if (response.ok) {
+                                    // Mettez à jour l'affichage après la modification
+                                    displayCategories();
+                                } else {
+                                    console.error('Erreur lors de la modification de la catégorie');
+                                }
+                            } catch (error) {
+                                console.error('Erreur lors de la modification de la catégorie:', error);
+                            }
+                        }
+                    });
+                });
+            };
+
+            // Appel de la fonction pour afficher les catégories lors du chargement initial de la page
+            displayCategories();
+
+            // Écouteur d'événement pour soumettre le formulaire d'ajout de catégorie
+            const addCategoryForm = document.querySelector('#addCategoryForm');
+            addCategoryForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const formData = new FormData(addCategoryForm);
+                const libelle = formData.get('libelle');
+                const response = await fetch('/categories', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ libelle })
+                });
+                if (response.ok) {
+                    // Réafficher la liste des catégories après l'ajout
+                    displayCategories();
+                    addCategoryForm.reset(); // Réinitialiser le formulaire
+                } else {
+                    alert('Erreur lors de l\'ajout de la catégorie');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
